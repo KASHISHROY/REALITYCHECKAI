@@ -1,2 +1,6 @@
-"""SQLAlchemy models will live here as persistence features are added."""
+"""SQLAlchemy models."""
+
+from app.models.project import Project, Scan
+
+__all__ = ["Project", "Scan"]
 

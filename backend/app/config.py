@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     app_version: str = "0.1.0"
     app_env: str = "development"
     database_url: str = "sqlite:///./realitycheck.db"
+    repo_storage_path: str = "storage/repos"
     cors_origins: list[str] = ["http://localhost:5173"]
 
     model_config = SettingsConfigDict(
@@ -29,4 +30,3 @@ class Settings(BaseSettings):
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
-

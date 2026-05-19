@@ -23,6 +23,7 @@ SessionLocal = sessionmaker(
     autocommit=False,
     autoflush=False,
     bind=engine,
+    expire_on_commit=False,
 )
 
 
@@ -36,4 +37,3 @@ def get_db() -> Generator[Session, None, None]:
         yield db
     finally:
         db.close()
-
