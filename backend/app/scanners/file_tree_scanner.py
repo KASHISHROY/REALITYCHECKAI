@@ -34,6 +34,8 @@ IMPORTANT_FILENAMES = {
     "pyproject.toml",
     "vite.config.ts",
     "vite.config.js",
+    "vite.config.mjs",
+    "vite.config.mts",
     "next.config.js",
     "next.config.mjs",
     "main.py",
@@ -84,7 +86,15 @@ def scan_repository_tree(
     docs_detected = any(_is_doc_path(path) for path in all_paths)
 
     frontend_detected = package_json_detected or any(
-        Path(path).name in {"vite.config.ts", "vite.config.js", "next.config.js", "next.config.mjs"}
+        Path(path).name
+        in {
+            "vite.config.ts",
+            "vite.config.js",
+            "vite.config.mjs",
+            "vite.config.mts",
+            "next.config.js",
+            "next.config.mjs",
+        }
         or path.startswith("frontend/")
         for path in all_paths
     )

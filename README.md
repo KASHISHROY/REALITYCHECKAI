@@ -2,45 +2,69 @@
 
 Detect when your code, docs, APIs, configs, and deployment reality no longer match.
 
-RealityCheck AI is an agentic software reality gap detector. It will analyze repositories and compare what documentation claims against what the code, APIs, environment variables, dependencies, and deployment files actually do.
+RealityCheck AI is an agentic repository intelligence platform for full-stack teams. It analyzes GitHub repositories and compares documentation claims against actual frontend calls, backend routes, environment variables, dependencies, authentication signals, and deployment configuration.
 
-## Current Feature
+## Architecture
 
-Day 1 creates the full foundation pipeline:
+```text
+React + TypeScript + Vite + Tailwind
+        |
+        v
+FastAPI API
+        |
+        v
+Deterministic scanners -> Gap detection -> Optional GenAI reasoning
+        |
+        v
+SQLite now, PostgreSQL-ready later
+```
 
-- FastAPI backend with `GET /health`
-- `POST /projects` for GitHub repo validation and project creation
-- `POST /projects/{id}/scan` for clone/fetch plus file-tree scanning
-- React, TypeScript, Vite, and Tailwind frontend
-- Dark-mode SaaS dashboard
-- Shared project structure for future scanners and agents
-- Docker-ready backend setup
+The core architecture is deterministic extraction plus GenAI reasoning. Route extraction, API calls, environment variables, dependencies, auth signals, and deployment config are parsed locally. If `GROQ_API_KEY` or `OPENAI_API_KEY` exists, RealityCheck AI uses an LLM for documentation claim extraction and gap explanations. Without keys, deterministic fallback templates keep the app fully usable.
+
+## Features
+
+- GitHub project creation and repository cloning
+- File-tree and important-file scanning
+- README/docs claim extraction
+- FastAPI and Express route extraction
+- Frontend `fetch`, `axios`, and API client call extraction
+- API mismatch detection
+- Environment variable usage vs `.env.example`
+- Docker, Compose, Render, Vercel, Vite, and package script signal extraction
+- Dependency reality detection for PostgreSQL, MongoDB, Redis, RabbitMQ, JWT, sessions, FastAPI, and Express
+- Auth mechanism detection for JWT, sessions, cookies, and bearer tokens
+- Gap storage with severity, explanation, and suggested fix
+- Reality Score with high, medium, and low penalties
+- Dashboard with filters, detail view, architecture graph, and markdown export
+- Built-in intentionally broken demo repository
+
+## Screenshots
+
+```text
+screenshots/dashboard-placeholder.png
+screenshots/gap-detail-placeholder.png
+screenshots/report-export-placeholder.png
+```
 
 ## Project Structure
 
 ```text
 backend/
   app/
-    main.py
-    config.py
-    database.py
-    routes/
-    schemas/
-    models/
-    services/
-    scanners/
     agents/
-    workers/
-    utils/
-  storage/
+    models/
+    routes/
+    scanners/
+    schemas/
+    services/
 frontend/
   src/
     api/
     components/
-    pages/
-    layouts/
     hooks/
-    utils/
+    layouts/
+    pages/
+realitycheck-demo-app/
 ```
 
 ## Backend Setup
@@ -62,56 +86,17 @@ macOS or Linux:
 source .venv/bin/activate
 ```
 
-Install dependencies and run the API:
+Install and run:
 
 ```bash
 pip install -r requirements.txt
 uvicorn app.main:app --reload
 ```
 
-Test the health endpoint:
+Health check:
 
 ```bash
 curl http://localhost:8000/health
-```
-
-Expected response:
-
-```json
-{
-  "status": "ok",
-  "service": "RealityCheck AI",
-  "version": "0.1.0",
-  "environment": "development"
-}
-```
-
-Create a project from a public GitHub repository:
-
-```powershell
-curl.exe -X POST http://localhost:8000/projects `
-  -H "Content-Type: application/json" `
-  -d "{\"repo_url\":\"https://github.com/octocat/Hello-World\"}"
-```
-
-Run a scan for project `1`:
-
-```powershell
-curl.exe -X POST http://localhost:8000/projects/1/scan
-```
-
-Expected scan fields include:
-
-```json
-{
-  "project_id": 1,
-  "repo_name": "Hello-World",
-  "status": "scanned",
-  "total_files": 1,
-  "total_folders": 0,
-  "docs_detected": true,
-  "important_files": ["README"]
-}
 ```
 
 ## Frontend Setup
@@ -128,9 +113,56 @@ Open:
 http://localhost:5173
 ```
 
-The frontend expects the backend at `http://localhost:8000` by default. To override it, copy `frontend/.env.example` to `frontend/.env` and update `VITE_API_BASE_URL`.
+The frontend uses `http://localhost:8000` by default. To override it, copy `frontend/.env.example` to `frontend/.env` and set `VITE_API_BASE_URL`.
 
-Paste a public GitHub repository URL, click Analyze, and the dashboard will show repository counts, detected project areas, configuration signals, and important files.
+## API Routes
+
+- `GET /health`
+- `POST /projects`
+- `POST /projects/{project_id}/scan`
+- `POST /projects/demo/scan`
+- `GET /projects/{project_id}/scans/{scan_id}/report`
+
+Create a project:
+
+```powershell
+curl.exe -X POST http://localhost:8000/projects `
+  -H "Content-Type: application/json" `
+  -d "{\"repo_url\":\"https://github.com/owner/repo\"}"
+```
+
+Run a scan:
+
+```powershell
+curl.exe -X POST http://localhost:8000/projects/1/scan
+```
+
+Run the demo scan:
+
+```powershell
+curl.exe -X POST http://localhost:8000/projects/demo/scan
+```
+
+Export a report:
+
+```powershell
+curl.exe http://localhost:8000/projects/1/scans/1/report
+```
+
+## Demo Repository
+
+`realitycheck-demo-app/` is intentionally broken. It includes a frontend, backend, README, `.env.example`, Dockerfile, and docker-compose file with 20+ mismatches:
+
+- Docs say backend port 8000, Docker exposes 5000
+- Docs say frontend port 3000, Vite uses 5173
+- Docs claim JWT auth, backend uses sessions and cookies
+- Docs claim MongoDB, dependencies use PostgreSQL
+- Frontend calls `/api/users`, backend exposes `/api/v1/users`
+- Frontend calls products/orders/reports endpoints that do not exist
+- Code uses env vars missing from `.env.example`
+- Docs claim RabbitMQ, dependencies do not include it
+
+Use the dashboard button `Try Demo Repo` to scan it without cloning anything.
 
 ## Docker
 
@@ -146,6 +178,13 @@ Then visit:
 http://localhost:8000/health
 ```
 
-## Roadmap
+## Future Improvements
 
-Next feature: extract documentation claims from README/docs.
+- Alembic migrations
+- PostgreSQL production database
+- Background scan jobs with Celery and Redis
+- Deeper route prefix resolution across framework files
+- React Flow graph view
+- Historical scan comparisons
+- GitHub App installation and PR comments
+- CI checks for documentation drift

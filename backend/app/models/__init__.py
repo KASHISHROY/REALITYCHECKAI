@@ -1,6 +1,5 @@
 """SQLAlchemy models."""
 
-from app.models.project import Project, Scan
+from app.models.project import Gap, Project, Scan
 
-__all__ = ["Project", "Scan"]
-
+__all__ = ["Gap", "Project", "Scan"]

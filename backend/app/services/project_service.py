@@ -10,6 +10,7 @@ from app.models import Project
 
 GITHUB_OWNER_PATTERN = re.compile(r"^[A-Za-z0-9-]+$")
 GITHUB_REPO_PATTERN = re.compile(r"^[A-Za-z0-9_.-]+$")
+DEMO_REPO_URL = "demo://realitycheck-demo-app"
 
 
 @dataclass(frozen=True)
@@ -79,3 +80,19 @@ def create_or_get_project(db: Session, repo_url: str) -> Project:
     db.refresh(project)
     return project
 
+
+def create_or_get_demo_project(db: Session) -> Project:
+    existing = db.scalar(select(Project).where(Project.repo_url == DEMO_REPO_URL))
+    if existing:
+        return existing
+
+    project = Project(
+        repo_url=DEMO_REPO_URL,
+        repo_owner="local",
+        repo_name="realitycheck-demo-app",
+        status="created",
+    )
+    db.add(project)
+    db.commit()
+    db.refresh(project)
+    return project

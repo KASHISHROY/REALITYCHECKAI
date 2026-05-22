@@ -12,6 +12,10 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./realitycheck.db"
     repo_storage_path: str = "storage/repos"
     cors_origins: list[str] = ["http://localhost:5173"]
+    groq_api_key: str | None = None
+    openai_api_key: str | None = None
+    groq_model: str = "llama-3.1-8b-instant"
+    openai_model: str = "gpt-4o-mini"
 
     model_config = SettingsConfigDict(
         env_file=".env",

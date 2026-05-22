@@ -1,8 +1,13 @@
-import { AlertCircle, Github, Loader2, Search, ShieldCheck } from "lucide-react";
+import { AlertCircle, Github, Loader2, Play, Search, ShieldCheck } from "lucide-react";
 import type { FormEvent } from "react";
 import { useState } from "react";
 
-import { createProject, scanProject, type ScanSummary } from "@/api/client";
+import {
+  createProject,
+  scanDemoProject,
+  scanProject,
+  type ScanSummary,
+} from "@/api/client";
 import { HealthBadge } from "@/components/HealthBadge";
 import { ScanDashboard } from "@/components/ScanDashboard";
 import { useApiHealth } from "@/hooks/useApiHealth";
@@ -54,9 +59,27 @@ export function HomePage() {
     }
   }
 
+  async function handleDemoScan() {
+    try {
+      setError(null);
+      setScan(null);
+      setStage("scanning");
+      const scanSummary = await scanDemoProject();
+      setScan(scanSummary);
+      setStage("complete");
+    } catch (caughtError) {
+      setStage("idle");
+      setError(
+        caughtError instanceof Error
+          ? caughtError.message
+          : "Something went wrong while analyzing the demo repository.",
+      );
+    }
+  }
+
   return (
     <section className="mx-auto w-full max-w-7xl px-6 py-12 md:py-16">
-      <div className="grid gap-10 lg:grid-cols-[0.85fr_1.15fr] lg:items-start">
+      <div className="grid gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:items-start">
         <div className="space-y-8">
           <HealthBadge status={health.status} />
 
@@ -75,7 +98,7 @@ export function HomePage() {
 
           <div className="flex items-center gap-3 border-l border-accent/40 pl-4 text-sm text-muted-foreground">
             <ShieldCheck className="h-4 w-4 text-accent" aria-hidden={true} />
-            <span>Day 1 foundation: validate, clone, scan, summarize.</span>
+            <span>Deterministic scanners plus optional AI explanations.</span>
           </div>
         </div>
 
@@ -119,6 +142,20 @@ export function HomePage() {
             </div>
           </form>
 
+          <button
+            className="mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-border bg-background/60 px-4 text-sm font-semibold text-foreground transition hover:border-accent/60 disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={isLoading}
+            onClick={handleDemoScan}
+            type="button"
+          >
+            {isLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden={true} />
+            ) : (
+              <Play className="h-4 w-4 text-accent" aria-hidden={true} />
+            )}
+            Try Demo Repo
+          </button>
+
           {isLoading ? (
             <div className="mt-6 rounded-lg border border-border bg-background/60 p-4">
               <div className="h-2 overflow-hidden rounded-full bg-muted">
@@ -127,7 +164,7 @@ export function HomePage() {
               <p className="mt-3 text-sm text-muted-foreground">
                 {stage === "creating"
                   ? "Checking the GitHub URL and creating the project record."
-                  : "Fetching the repository and reading its file tree."}
+                  : "Extracting routes, API calls, env vars, docs claims, dependencies, and deployment signals."}
               </p>
             </div>
           ) : null}
@@ -143,10 +180,10 @@ export function HomePage() {
 
       <div className="mt-10">
         {scan ? (
-          <ScanDashboard scan={scan} />
+          <ScanDashboard key={scan.scan_id} scan={scan} />
         ) : (
           <div className="border-y border-border py-8 text-sm text-muted-foreground">
-            Paste a repository URL to create the first RealityCheck scan summary.
+            Paste a repository URL or run the demo repo to generate a RealityCheck analysis.
           </div>
         )}
       </div>

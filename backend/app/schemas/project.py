@@ -1,3 +1,5 @@
+from typing import Any
+
 from pydantic import BaseModel, Field
 
 
@@ -17,6 +19,7 @@ class ProjectResponse(BaseModel):
 
 
 class ScanSummary(BaseModel):
+    scan_id: int = 0
     project_id: int
     repo_name: str
     repo_owner: str
@@ -33,4 +36,25 @@ class ScanSummary(BaseModel):
     requirements_detected: bool
     config_detected: bool
     important_files: list[str]
+    reality_score: int = 100
+    total_gaps: int = 0
+    high_gaps: int = 0
+    medium_gaps: int = 0
+    low_gaps: int = 0
+    category_counts: dict[str, int] = Field(default_factory=dict)
+    gaps: list["GapResponse"] = Field(default_factory=list)
+    analysis: dict[str, Any] = Field(default_factory=dict)
 
+
+class GapResponse(BaseModel):
+    id: int
+    category: str
+    severity: str
+    claim_text: str
+    reality_text: str
+    source_file: str | None = None
+    affected_file: str | None = None
+    explanation: str
+    suggested_fix: str
+
+    model_config = {"from_attributes": True}

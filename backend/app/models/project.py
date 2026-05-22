@@ -28,6 +28,11 @@ class Project(Base):
         cascade="all, delete-orphan",
     )
 
+    gaps: Mapped[list["Gap"]] = relationship(
+        back_populates="project",
+        cascade="all, delete-orphan",
+    )
+
 
 class Scan(Base):
     __tablename__ = "scans"
@@ -50,4 +55,27 @@ class Scan(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     project: Mapped[Project] = relationship(back_populates="scans")
+    gaps: Mapped[list["Gap"]] = relationship(
+        back_populates="scan",
+        cascade="all, delete-orphan",
+    )
 
+
+class Gap(Base):
+    __tablename__ = "gaps"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    project_id: Mapped[int] = mapped_column(ForeignKey("projects.id"), index=True)
+    scan_id: Mapped[int] = mapped_column(ForeignKey("scans.id"), index=True)
+    category: Mapped[str] = mapped_column(String(80), index=True)
+    severity: Mapped[str] = mapped_column(String(20), index=True)
+    claim_text: Mapped[str] = mapped_column(Text)
+    reality_text: Mapped[str] = mapped_column(Text)
+    source_file: Mapped[str | None] = mapped_column(String(600), nullable=True)
+    affected_file: Mapped[str | None] = mapped_column(String(600), nullable=True)
+    explanation: Mapped[str] = mapped_column(Text)
+    suggested_fix: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    project: Mapped[Project] = relationship(back_populates="gaps")
+    scan: Mapped[Scan] = relationship(back_populates="gaps")

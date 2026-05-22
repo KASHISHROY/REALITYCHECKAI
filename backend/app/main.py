@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
 from app.database import Base, engine
-from app.models import Project, Scan
+from app.models import Gap, Project, Scan
 from app.routes.health import router as health_router
 from app.routes.projects import router as projects_router
 
