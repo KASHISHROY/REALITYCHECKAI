@@ -270,6 +270,7 @@ type Tone = "accent" | "warning" | "danger";
 
 function ScoreCard({ score, totalGaps }: { score: number; totalGaps: number }) {
   const tone = scoreTone(score);
+  const status = scoreStatus(score);
   const toneText = {
     accent: "text-accent",
     warning: "text-warning",
@@ -286,7 +287,12 @@ function ScoreCard({ score, totalGaps }: { score: number; totalGaps: number }) {
       <div className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${toneGradient} to-transparent`} />
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-sm font-medium text-muted-foreground">Reality Score</p>
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-sm font-medium text-muted-foreground">Reality Score</p>
+            <span className={`rounded-full border px-2 py-0.5 text-xs ${toneText} border-current/30 bg-background/50`}>
+              {status}
+            </span>
+          </div>
           <div className="mt-3 flex items-end gap-2">
             <span className={`text-6xl font-semibold leading-none ${toneText}`}>
               {score}
@@ -301,6 +307,8 @@ function ScoreCard({ score, totalGaps }: { score: number; totalGaps: number }) {
       <p className="mt-5 text-sm leading-6 text-muted-foreground">
         {totalGaps === 0
           ? "No drift detected in this scan. The repository evidence lines up cleanly."
+          : score === 0
+            ? "Critical drift detected. The demo repository is intentionally broken, so a zero score is expected for recording."
           : `${totalGaps} reality gaps were found across docs, APIs, env, auth, dependencies, and deployment signals.`}
       </p>
     </div>
@@ -673,4 +681,11 @@ function scoreTone(score: number): "accent" | "warning" | "danger" {
   if (score >= 80) return "accent";
   if (score >= 50) return "warning";
   return "danger";
+}
+
+function scoreStatus(score: number) {
+  if (score >= 80) return "Healthy";
+  if (score >= 50) return "Needs Review";
+  if (score > 0) return "Critical Drift";
+  return "Demo Critical Drift";
 }

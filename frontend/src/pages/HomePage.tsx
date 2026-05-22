@@ -38,6 +38,8 @@ const scanProgressSteps = [
   "Calculating Reality Score",
 ];
 
+const minimumVisibleScanMs = 9000;
+
 export function HomePage() {
   const health = useApiHealth();
   const [repoUrl, setRepoUrl] = useState("");
@@ -80,7 +82,7 @@ export function HomePage() {
       const project = await createProject(trimmedRepoUrl);
 
       setStage("scanning");
-      const scanSummary = await scanProject(project.id);
+      const scanSummary = await keepProgressVisible(scanProject(project.id));
       setScan(scanSummary);
       setStage("complete");
     } catch (caughtError) {
@@ -93,9 +95,9 @@ export function HomePage() {
     try {
       setError(null);
       setScan(null);
-      setActiveProgressIndex(1);
+      setActiveProgressIndex(0);
       setStage("scanning");
-      const scanSummary = await scanDemoProject();
+      const scanSummary = await keepProgressVisible(scanDemoProject());
       setScan(scanSummary);
       setStage("complete");
     } catch (caughtError) {
@@ -271,4 +273,12 @@ function formatUserError(caughtError: unknown, target: string) {
   }
 
   return caughtError.message;
+}
+
+async function keepProgressVisible<T>(work: Promise<T>): Promise<T> {
+  const [result] = await Promise.all([
+    work,
+    new Promise((resolve) => window.setTimeout(resolve, minimumVisibleScanMs)),
+  ]);
+  return result;
 }
