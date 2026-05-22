@@ -30,7 +30,10 @@ pnpm-debug.log*
 *.db
 *.sqlite
 *.sqlite3
+storage/
+storage/repos/
 backend/storage/
+backend/storage/repos/
 
 # OS and editors
 .DS_Store

@@ -1,6 +1,14 @@
-import { AlertCircle, Github, Loader2, Play, Search, ShieldCheck } from "lucide-react";
+import {
+  AlertCircle,
+  CheckCircle2,
+  Github,
+  Loader2,
+  Play,
+  Search,
+  ShieldCheck,
+} from "lucide-react";
 import type { FormEvent } from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import {
   createProject,
@@ -17,9 +25,18 @@ type AnalyzeStage = "idle" | "creating" | "scanning" | "complete";
 const stageLabel: Record<AnalyzeStage, string> = {
   idle: "Ready to analyze",
   creating: "Validating repository",
-  scanning: "Cloning and scanning",
+  scanning: "Analyzing repository reality",
   complete: "Scan complete",
 };
+
+const scanProgressSteps = [
+  "Creating project",
+  "Cloning repository",
+  "Scanning files",
+  "Extracting claims",
+  "Detecting gaps",
+  "Calculating Reality Score",
+];
 
 export function HomePage() {
   const health = useApiHealth();
@@ -27,8 +44,24 @@ export function HomePage() {
   const [stage, setStage] = useState<AnalyzeStage>("idle");
   const [error, setError] = useState<string | null>(null);
   const [scan, setScan] = useState<ScanSummary | null>(null);
+  const [activeProgressIndex, setActiveProgressIndex] = useState(0);
 
   const isLoading = stage === "creating" || stage === "scanning";
+
+  useEffect(() => {
+    if (!isLoading) {
+      setActiveProgressIndex(0);
+      return;
+    }
+
+    const timer = window.setInterval(() => {
+      setActiveProgressIndex((current) =>
+        Math.min(current + 1, scanProgressSteps.length - 1),
+      );
+    }, 1400);
+
+    return () => window.clearInterval(timer);
+  }, [isLoading]);
 
   async function handleAnalyze(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -42,6 +75,7 @@ export function HomePage() {
     try {
       setError(null);
       setScan(null);
+      setActiveProgressIndex(0);
       setStage("creating");
       const project = await createProject(trimmedRepoUrl);
 
@@ -51,11 +85,7 @@ export function HomePage() {
       setStage("complete");
     } catch (caughtError) {
       setStage("idle");
-      setError(
-        caughtError instanceof Error
-          ? caughtError.message
-          : "Something went wrong while analyzing this repository.",
-      );
+      setError(formatUserError(caughtError, "repository"));
     }
   }
 
@@ -63,22 +93,19 @@ export function HomePage() {
     try {
       setError(null);
       setScan(null);
+      setActiveProgressIndex(1);
       setStage("scanning");
       const scanSummary = await scanDemoProject();
       setScan(scanSummary);
       setStage("complete");
     } catch (caughtError) {
       setStage("idle");
-      setError(
-        caughtError instanceof Error
-          ? caughtError.message
-          : "Something went wrong while analyzing the demo repository.",
-      );
+      setError(formatUserError(caughtError, "demo repository"));
     }
   }
 
   return (
-    <section className="mx-auto w-full max-w-7xl px-6 py-12 md:py-16">
+    <section className="mx-auto w-full max-w-7xl px-5 py-10 sm:px-6 md:py-16">
       <div className="grid gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:items-start">
         <div className="space-y-8">
           <HealthBadge status={health.status} />
@@ -87,7 +114,7 @@ export function HomePage() {
             <p className="text-sm font-medium uppercase text-accent">
               Software reality gap detector
             </p>
-            <h1 className="mt-5 text-5xl font-semibold leading-tight text-foreground md:text-7xl">
+            <h1 className="mt-5 max-w-2xl text-5xl font-semibold leading-tight text-foreground md:text-7xl">
               RealityCheck AI
             </h1>
             <p className="mt-6 max-w-xl text-lg leading-8 text-muted-foreground">
@@ -112,6 +139,12 @@ export function HomePage() {
               <p className="text-sm text-muted-foreground">{stageLabel[stage]}</p>
             </div>
           </div>
+
+          {health.status === "offline" ? (
+            <div className="mt-5 rounded-lg border border-warning/30 bg-warning/10 px-4 py-3 text-sm leading-6 text-warning">
+              Backend API is unavailable. Start the FastAPI server, then run a scan.
+            </div>
+          ) : null}
 
           <form className="mt-6 space-y-4" onSubmit={handleAnalyze}>
             <label className="block text-sm text-muted-foreground" htmlFor="repo-url">
@@ -157,16 +190,7 @@ export function HomePage() {
           </button>
 
           {isLoading ? (
-            <div className="mt-6 rounded-lg border border-border bg-background/60 p-4">
-              <div className="h-2 overflow-hidden rounded-full bg-muted">
-                <div className="h-full w-2/3 animate-pulse rounded-full bg-accent" />
-              </div>
-              <p className="mt-3 text-sm text-muted-foreground">
-                {stage === "creating"
-                  ? "Checking the GitHub URL and creating the project record."
-                  : "Extracting routes, API calls, env vars, docs claims, dependencies, and deployment signals."}
-              </p>
-            </div>
+            <ScanProgress activeIndex={activeProgressIndex} />
           ) : null}
 
           {error ? (
@@ -182,11 +206,69 @@ export function HomePage() {
         {scan ? (
           <ScanDashboard key={scan.scan_id} scan={scan} />
         ) : (
-          <div className="border-y border-border py-8 text-sm text-muted-foreground">
-            Paste a repository URL or run the demo repo to generate a RealityCheck analysis.
+          <div className="rounded-lg border border-border bg-surface/70 px-5 py-8 text-sm leading-6 text-muted-foreground">
+            Paste a GitHub URL or run the demo repo to generate your first RealityCheck analysis. Results will appear here with score, gaps, filters, graph, and report export.
           </div>
         )}
       </div>
     </section>
   );
+}
+
+function ScanProgress({ activeIndex }: { activeIndex: number }) {
+  const progress = ((activeIndex + 1) / scanProgressSteps.length) * 100;
+
+  return (
+    <div className="mt-6 rounded-lg border border-border bg-background/60 p-4">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-sm font-medium">Scan pipeline</p>
+        <span className="text-xs text-muted-foreground">{Math.round(progress)}%</span>
+      </div>
+      <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted">
+        <div
+          className="h-full rounded-full bg-accent transition-all duration-500"
+          style={{ width: `${progress}%` }}
+        />
+      </div>
+      <ol className="mt-4 grid gap-2 sm:grid-cols-2">
+        {scanProgressSteps.map((step, index) => {
+          const isDone = index < activeIndex;
+          const isActive = index === activeIndex;
+          return (
+            <li
+              className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm ${
+                isActive
+                  ? "border-accent/50 bg-accent/10 text-accent"
+                  : isDone
+                    ? "border-border bg-surface text-foreground"
+                    : "border-border bg-background/40 text-muted-foreground"
+              }`}
+              key={step}
+            >
+              {isDone ? (
+                <CheckCircle2 className="h-4 w-4 text-accent" aria-hidden={true} />
+              ) : isActive ? (
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden={true} />
+              ) : (
+                <span className="h-4 w-4 rounded-full border border-border" />
+              )}
+              <span>{step}</span>
+            </li>
+          );
+        })}
+      </ol>
+    </div>
+  );
+}
+
+function formatUserError(caughtError: unknown, target: string) {
+  if (!(caughtError instanceof Error)) {
+    return `Something went wrong while analyzing this ${target}.`;
+  }
+
+  if (caughtError.message.includes("Failed to fetch")) {
+    return "RealityCheck API is not reachable. Start the backend server and try again.";
+  }
+
+  return caughtError.message;
 }

@@ -38,6 +38,15 @@ body {
     sans-serif;
 }
 
+::selection {
+  background: hsl(var(--accent) / 0.28);
+  color: hsl(var(--foreground));
+}
+
+* {
+  scrollbar-color: hsl(var(--border)) transparent;
+}
+
 button,
 a {
   -webkit-tap-highlight-color: transparent;
@@ -52,4 +61,3 @@ a {
     @apply rounded-lg border border-border bg-surface-strong/70;
   }
 }
-

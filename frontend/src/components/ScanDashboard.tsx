@@ -1,7 +1,9 @@
 import {
+  Activity,
   ArrowRight,
   Bot,
   Box,
+  CheckCircle2,
   Code2,
   Database,
   Download,
@@ -9,6 +11,7 @@ import {
   FileText,
   Filter,
   FolderTree,
+  Gauge,
   GitBranch,
   KeyRound,
   Network,
@@ -24,7 +27,6 @@ import {
   type ScanSummary,
 } from "@/api/client";
 import { DetectionCard } from "@/components/DetectionCard";
-import { RealitySignal } from "@/components/RealitySignal";
 
 type ScanDashboardProps = {
   scan: ScanSummary;
@@ -147,18 +149,21 @@ export function ScanDashboard({ scan }: ScanDashboardProps) {
         </p>
       ) : null}
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        <RealitySignal
-          label="Reality Score"
-          value={`${scan.reality_score}/100`}
-          tone={scoreTone(scan.reality_score)}
-        />
-        <RealitySignal label="Total Gaps" value={`${scan.total_gaps}`} tone="warning" />
-        <RealitySignal label="High" value={`${scan.high_gaps}`} tone="danger" />
-        <RealitySignal label="Medium" value={`${scan.medium_gaps}`} tone="warning" />
-        <RealitySignal label="Low" value={`${scan.low_gaps}`} tone="accent" />
+      <div className="grid gap-4 lg:grid-cols-[1.35fr_2fr]">
+        <ScoreCard score={scan.reality_score} totalGaps={scan.total_gaps} />
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <MetricCard icon={Activity} label="Total Gaps" value={scan.total_gaps} tone="warning" />
+          <MetricCard icon={ShieldAlert} label="High" value={scan.high_gaps} tone="danger" />
+          <MetricCard icon={Gauge} label="Medium" value={scan.medium_gaps} tone="warning" />
+          <MetricCard icon={CheckCircle2} label="Low" value={scan.low_gaps} tone="accent" />
+        </div>
       </div>
 
+      <SectionHeading
+        eyebrow="Detected surface area"
+        title="Repository signals"
+        description="The scanners identify the parts of the repository that can be compared for drift."
+      />
       <div className="grid gap-4 md:grid-cols-4">
         {detections.map((item) => (
           <DetectionCard key={item.label} {...item} />
@@ -167,6 +172,11 @@ export function ScanDashboard({ scan }: ScanDashboardProps) {
 
       <ArchitectureGraph scan={scan} />
 
+      <SectionHeading
+        eyebrow="Evidence review"
+        title="Gap findings"
+        description="Filter by engineering domain and severity, then inspect the claim, reality, impact, and recommended fix."
+      />
       <div className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
         <div className="space-y-4">
           <div className="flex flex-col gap-3 rounded-lg border border-border bg-surface-strong/60 p-4">
@@ -253,6 +263,96 @@ export function ScanDashboard({ scan }: ScanDashboardProps) {
 
       <ExtractionOverview scan={scan} />
     </section>
+  );
+}
+
+type Tone = "accent" | "warning" | "danger";
+
+function ScoreCard({ score, totalGaps }: { score: number; totalGaps: number }) {
+  const tone = scoreTone(score);
+  const toneText = {
+    accent: "text-accent",
+    warning: "text-warning",
+    danger: "text-danger",
+  }[tone];
+  const toneGradient = {
+    accent: "from-accent/20",
+    warning: "from-warning/20",
+    danger: "from-danger/20",
+  }[tone];
+
+  return (
+    <div className="relative overflow-hidden rounded-lg border border-border bg-surface p-5 shadow-glow">
+      <div className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${toneGradient} to-transparent`} />
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-sm font-medium text-muted-foreground">Reality Score</p>
+          <div className="mt-3 flex items-end gap-2">
+            <span className={`text-6xl font-semibold leading-none ${toneText}`}>
+              {score}
+            </span>
+            <span className="pb-2 text-sm text-muted-foreground">/100</span>
+          </div>
+        </div>
+        <span className="grid h-11 w-11 place-items-center rounded-lg border border-border bg-background/70">
+          <Gauge className={`h-5 w-5 ${toneText}`} aria-hidden={true} />
+        </span>
+      </div>
+      <p className="mt-5 text-sm leading-6 text-muted-foreground">
+        {totalGaps === 0
+          ? "No drift detected in this scan. The repository evidence lines up cleanly."
+          : `${totalGaps} reality gaps were found across docs, APIs, env, auth, dependencies, and deployment signals.`}
+      </p>
+    </div>
+  );
+}
+
+type MetricCardProps = {
+  icon: typeof Activity;
+  label: string;
+  value: number;
+  tone: Tone;
+};
+
+function MetricCard({ icon: Icon, label, value, tone }: MetricCardProps) {
+  const classes = {
+    accent: "text-accent border-accent/25 bg-accent/10",
+    warning: "text-warning border-warning/25 bg-warning/10",
+    danger: "text-danger border-danger/25 bg-danger/10",
+  }[tone];
+
+  return (
+    <div className="rounded-lg border border-border bg-surface-strong/70 p-4">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-sm text-muted-foreground">{label}</p>
+        <span className={`grid h-8 w-8 place-items-center rounded-lg border ${classes}`}>
+          <Icon className="h-4 w-4" aria-hidden={true} />
+        </span>
+      </div>
+      <p className="mt-4 text-3xl font-semibold">{value}</p>
+    </div>
+  );
+}
+
+type SectionHeadingProps = {
+  eyebrow: string;
+  title: string;
+  description: string;
+};
+
+function SectionHeading({ eyebrow, title, description }: SectionHeadingProps) {
+  return (
+    <div className="pt-2">
+      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-accent">
+        {eyebrow}
+      </p>
+      <div className="mt-2 flex flex-col justify-between gap-2 md:flex-row md:items-end">
+        <h3 className="text-xl font-semibold">{title}</h3>
+        <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
+          {description}
+        </p>
+      </div>
+    </div>
   );
 }
 
@@ -401,8 +501,18 @@ type GapDetailProps = {
 function GapDetail({ gap }: GapDetailProps) {
   if (!gap) {
     return (
-      <div className="rounded-lg border border-border bg-surface-strong/60 p-5 text-sm text-muted-foreground">
-        No gap selected.
+      <div className="rounded-lg border border-accent/30 bg-accent/10 p-5">
+        <div className="flex items-center gap-3">
+          <span className="grid h-10 w-10 place-items-center rounded-lg border border-accent/30 bg-background/60">
+            <CheckCircle2 className="h-5 w-5 text-accent" aria-hidden={true} />
+          </span>
+          <div>
+            <p className="text-sm font-medium text-accent">No gaps detected</p>
+            <p className="mt-1 text-sm leading-6 text-muted-foreground">
+              The scanned repository signals agree with the extracted claims.
+            </p>
+          </div>
+        </div>
       </div>
     );
   }

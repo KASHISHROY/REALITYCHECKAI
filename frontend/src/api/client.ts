@@ -79,23 +79,40 @@ export type ScanSummary = {
   analysis: AnalysisPayload;
 };
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, "") ||
-  "http://localhost:8000";
+const API_BASE_URL = (
+  import.meta.env.VITE_API_URL ||
+  import.meta.env.VITE_API_BASE_URL ||
+  "http://localhost:8000"
+).replace(/\/$/, "");
 
 export async function apiRequest<T>(
   path: string,
   options: RequestInit = {},
+  timeoutMs = 45_000,
 ): Promise<T> {
   const headers = new Headers(options.headers);
   if (!headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    ...options,
-    headers,
-  });
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
+  let response: Response;
+
+  try {
+    response = await fetch(`${API_BASE_URL}${path}`, {
+      ...options,
+      headers,
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new Error("Request timed out. The repository scan may be taking too long.");
+    }
+    throw new Error("RealityCheck API is unavailable. Start the backend server and try again.");
+  } finally {
+    window.clearTimeout(timeout);
+  }
 
   if (!response.ok) {
     throw new Error(await getApiErrorMessage(response));
@@ -105,32 +122,43 @@ export async function apiRequest<T>(
 }
 
 export function getHealth() {
-  return apiRequest<HealthResponse>("/health");
+  return apiRequest<HealthResponse>("/health", {}, 5_000);
 }
 
 export function createProject(repoUrl: string) {
   return apiRequest<ProjectResponse>("/projects", {
     method: "POST",
     body: JSON.stringify({ repo_url: repoUrl }),
-  });
+  }, 20_000);
 }
 
 export function scanProject(projectId: number) {
   return apiRequest<ScanSummary>(`/projects/${projectId}/scan`, {
     method: "POST",
-  });
+  }, 180_000);
 }
 
 export function scanDemoProject() {
   return apiRequest<ScanSummary>("/projects/demo/scan", {
     method: "POST",
-  });
+  }, 120_000);
 }
 
 export async function exportScanReport(projectId: number, scanId: number) {
-  const response = await fetch(
-    `${API_BASE_URL}/projects/${projectId}/scans/${scanId}/report`,
-  );
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), 30_000);
+  let response: Response;
+
+  try {
+    response = await fetch(
+      `${API_BASE_URL}/projects/${projectId}/scans/${scanId}/report`,
+      { signal: controller.signal },
+    );
+  } catch {
+    throw new Error("Could not reach the API to export the report.");
+  } finally {
+    window.clearTimeout(timeout);
+  }
 
   if (!response.ok) {
     throw new Error(await getApiErrorMessage(response));

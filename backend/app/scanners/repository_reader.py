@@ -3,6 +3,8 @@ from pathlib import Path
 from collections.abc import Iterable
 
 
+MAX_TEXT_FILE_BYTES = 1_000_000
+
 SKIPPED_DIRS = {
     ".git",
     ".hg",
@@ -63,6 +65,8 @@ def iter_files(
 
 def iter_text_files(repo_path: Path) -> Iterable[Path]:
     for file_path in iter_files(repo_path):
+        if _is_too_large(file_path):
+            continue
         if file_path.suffix.lower() in TEXT_EXTENSIONS or file_path.name in {
             "Dockerfile",
             ".env.example",
@@ -72,10 +76,17 @@ def iter_text_files(repo_path: Path) -> Iterable[Path]:
 
 
 def read_text(file_path: Path) -> str:
+    if _is_too_large(file_path):
+        return ""
     try:
         return file_path.read_text(encoding="utf-8")
     except UnicodeDecodeError:
-        return file_path.read_text(encoding="latin-1", errors="ignore")
+        try:
+            return file_path.read_text(encoding="latin-1", errors="ignore")
+        except OSError:
+            return ""
+    except OSError:
+        return ""
 
 
 def relative_path(repo_path: Path, file_path: Path) -> str:
@@ -84,3 +95,10 @@ def relative_path(repo_path: Path, file_path: Path) -> str:
 
 def line_number(text: str, index: int) -> int:
     return text.count("\n", 0, index) + 1
+
+
+def _is_too_large(file_path: Path) -> bool:
+    try:
+        return file_path.stat().st_size > MAX_TEXT_FILE_BYTES
+    except OSError:
+        return True

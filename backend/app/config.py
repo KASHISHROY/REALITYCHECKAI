@@ -11,7 +11,9 @@ class Settings(BaseSettings):
     app_env: str = "development"
     database_url: str = "sqlite:///./realitycheck.db"
     repo_storage_path: str = "storage/repos"
+    frontend_url: str = "http://localhost:5173"
     cors_origins: list[str] = ["http://localhost:5173"]
+    llm_provider: str = "auto"
     groq_api_key: str | None = None
     openai_api_key: str | None = None
     groq_model: str = "llama-3.1-8b-instant"
